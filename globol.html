@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego del Globo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #150f96;
+            overflow: hidden;
+        }
+        #globo {
+            width: 150px;
+            height: 200px;
+            background-color: #e41913;
+            border-radius: 50% 50% 40% 40%;
+            position: relative;
+            cursor: pointer;
+        }
+        #globo:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            width: 10px;
+            height: 80px;
+            background-color: #e41913;
+            border-radius: 0 0 10px 10px;
+            transform: translateX(-50%);
+        }
+
+        #trompetaIzquierda {
+            position: absolute;
+            bottom: 10px; /* Ajusta según tu preferencia */
+            left: 10px; /* Ajusta según tu preferencia */
+            width: 250px; /* Ajusta el tamaño de la trompeta */
+            height: auto;
+            z-index: 10; /* Asegura que esté encima de otros elementos */
+        }
+
+        #trompetaDerecha {
+            position: absolute;
+            bottom: 10px; /* Ajusta según tu preferencia */
+            right: 10px; /* Ajusta según tu preferencia */
+            width: 250px; /* Ajusta el tamaño de la trompeta */
+            height: auto;
+            z-index: 10; /* Asegura que esté encima de otros elementos */
+        }
+
+        #mensaje {
+            display: none;
+            font-size: 60px;
+            color: #7acb00;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            animation: bounceIn 1s forwards;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="globo"></div>
+    <div id="mensaje">¡Sigue Participando tendremos muchos entrenamientos más!</div>
+    <canvas id="canvas"></canvas>
+
+    <!-- Elemento de audio -->
+    <audio id="explosionSound" src="winner.mp3" preload="auto"></audio>
+
+    <img src="tromizq.png" id="trompetaIzquierda" alt="Trompeta Izquierda">
+    <img src="tromder.png" id="trompetaDerecha" alt="Trompeta Derecha">
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let serpentineParticles = [];
+        let isExploding = false;
+        const explosionSound = document.getElementById('explosionSound');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Crear partículas
+        function createParticles(x, y) {
+            const colors = ['#6e27c5', '#150f96', '#7acb00', '#01c1d6', '#ffb617'];
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    size: Math.random() * 5 + 1,
+                    speedX: Math.random() * 6 - 3,
+                    speedY: Math.random() * 6 - 3,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: Math.random() * 50 + 50
+                });
+            }
+        }
+
+        // Crear serpentinas
+        function createSerpentine() {
+            const colors = ['#6e27c5', '#150f96', '#7acb00', '#01c1d6', '#ffb617'];
+            for (let i = 0; i < 5; i++) {
+                serpentineParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * -canvas.height,
+                    length: Math.random() * 100 + 50,
+                    width: Math.random() * 5 + 2,
+                    speedY: Math.random() * 2 + 1,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    angle: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        // Animar partículas y serpentinas
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Animar partículas de explosión
+            if (isExploding) {
+                particles.forEach((particle, index) => {
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fillStyle = particle.color;
+                    ctx.fill();
+
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    particle.life--;
+
+                    if (particle.life <= 0) {
+                        particles.splice(index, 1);
+                    }
+                });
+
+                if (particles.length === 0) {
+                    document.getElementById('mensaje').style.display = 'block';
+                    document.getElementById('mensaje').style.opacity = 1;
+                }
+            }
+
+            // Animar serpentinas
+            serpentineParticles.forEach((serpentine, index) => {
+                ctx.beginPath();
+                ctx.moveTo(serpentine.x, serpentine.y);
+                ctx.lineTo(serpentine.x + Math.cos(serpentine.angle) * serpentine.length,
+                           serpentine.y + Math.sin(serpentine.angle) * serpentine.length);
+                ctx.lineWidth = serpentine.width;
+                ctx.strokeStyle = serpentine.color;
+                ctx.stroke();
+
+                serpentine.y += serpentine.speedY;
+
+                if (serpentine.y > canvas.height) {
+                    serpentineParticles.splice(index, 1);
+                    createSerpentine(); // Crea una nueva serpentina cuando una sale de la pantalla
+                }
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Inicializar serpentinas
+        for (let i = 0; i < 5; i++) {
+            createSerpentine();
+        }
+
+        document.getElementById('globo').addEventListener('click', function(event) {
+            if (!isExploding) {
+                isExploding = true;
+                createParticles(event.clientX, event.clientY);
+                document.getElementById('globo').style.display = 'none';
+                explosionSound.play(); // Reproducir el sonido de explosión
+            }
+        });
+
+        animate();
+    </script>
+</body>
+</html>
